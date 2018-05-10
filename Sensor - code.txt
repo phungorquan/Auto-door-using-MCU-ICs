@@ -5,6 +5,8 @@
 * Author : Xiu
 */
 
+Visit my video to understand what is this project : https://www.youtube.com/watch?v=iJr2TwKFrZA
+
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <util/delay.h>
