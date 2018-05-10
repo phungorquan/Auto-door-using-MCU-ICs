@@ -1,0 +1,122 @@
+/*
+* Code for Torch and Sensor demo.cpp
+*
+* Created: 7/22/2017 12:47:21 PM
+* Author : Xiu
+*/
+
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/sfr_defs.h>
+#define sbi(PORT,bit) {PORT |=(1<<bit);}
+#define cbi(PORT,bit) {PORT &=~(1<<bit);}
+	
+	// xai delay hoac ham delay cung dc tai lam mau
+void delay_1()
+{
+	for(int i = 0 ;i<10;i++)
+	{
+		
+	}
+}
+int main()
+{
+	DDRA =0xff;
+	DDRD =0b00010010;
+	// buzzer se k hoat dong o lan di qa dau tien cua ss1 :v
+	int i = 0; // bien dem so nguoi
+	
+	while(1)
+	{
+		while(bit_is_set(PIND,5)) // neu troi toi va quang tro hoat dong
+		{
+			sbi(PORTA,0); // bat nguon cho sen sor hoat dong
+			delay_1();
+			if(bit_is_clear(PINB,6)) // di qua ss 1 truoc ( di tu ngoai vao ) 
+			{
+				PORTD = 0b00010000; // bat buzzer
+				delay_1();
+				while(bit_is_clear(PINB,6))
+				{
+					if(bit_is_clear(PIND,5)) // kiem tra neu sang se tat ngay moi hoat dong
+					{
+						goto out;
+					}
+				}
+					PORTD = 0x00;	// tat buzzer
+				while(bit_is_set(PINB,7)) // kiem tra neu sang se tat ngay moi hoat dong
+				{
+					if(bit_is_clear(PIND,5))
+					{
+						goto out;
+					}
+				}
+
+				if(bit_is_clear(PINB,7)) // di qa ss 2
+				{
+						PORTD = 0b00010000; // bat buzzer
+						
+					while(bit_is_clear(PINB,7)) //kiem tra neu sang se tat ngay moi hoat dong
+					{
+						if(bit_is_clear(PIND,5))
+						{
+							goto out;
+						}
+					}
+					
+					i=i+1;
+					PORTD = 0x00; // tat buzzer
+					PORTA = 0b00000101; // bat den
+				}
+			}
+
+			if(bit_is_clear(PINB,7)) // di qa ss2 truoc ( di tu trong ra )
+			{
+						PORTD = 0b00010000; // bat buzzer
+						
+					delay_1();
+				while(bit_is_clear(PINB,7))// kiem tra neu sang se tat ngay moi hoat dong
+				{
+					if(bit_is_clear(PIND,5))
+					{
+						goto out;
+					}
+				}
+					PORTD = 0x00; // tat buzzer
+				while(bit_is_set(PINB,6))//kiem tra neu sang se tat ngay moi hoat dong
+				{
+					if(bit_is_clear(PIND,5))
+					{
+						goto out;
+					}
+				}
+				
+				if(bit_is_clear(PINB,6)) // di qa ss1
+				{
+						PORTD = 0b00010000; // bat buzzer
+					while(bit_is_clear(PINB,6)) //kiem tra neu sang se tat ngay moi hoat dong
+					{
+						if(bit_is_clear(PIND,5))
+						{
+							goto out;
+						}
+					}
+					PORTD = 0x00; // tat buzzer
+					i = i - 1;
+				}
+			}
+			
+				if(i == 0)
+				{
+					PORTA= 0b00000001; // tat den neu so nguoi di ra ngoai het tuc bien dem i se = 0
+				}
+		}
+		out:
+		// neu quang tro k hoat dong se tat moi hoat dong cua ss , ham goto se nhay ve dong line nay
+		PORTA =0x00; 
+		PORTD = 0x00;
+	
+	}
+
+}
