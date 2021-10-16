@@ -1,124 +1,162 @@
 /*
 * Code for Torch and Sensor demo.cpp
 *
-* Created: 7/22/2017 12:47:21 PM
+* Created: 16/10/2021
 * Author : Xiu
 */
 
-Visit my video to understand what is this project : https://www.youtube.com/watch?v=iJr2TwKFrZA
+// Demo video: https://youtu.be/iJr2TwKFrZA
 
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/sfr_defs.h>
-#define sbi(PORT,bit) {PORT |=(1<<bit);}
-#define cbi(PORT,bit) {PORT &=~(1<<bit);}
-	
-	// xai delay hoac ham delay cung dc tai lam mau
-void delay_1()
-{
-	for(int i = 0 ;i<10;i++)
-	{
-		
-	}
-}
-int main()
-{
-	DDRA =0xff;
-	DDRD =0b00010010;
-	// buzzer se k hoat dong o lan di qa dau tien cua ss1 :v
-	int i = 0; // bien dem so nguoi
-	
-	while(1)
-	{
-		while(bit_is_set(PIND,5)) // neu troi toi va quang tro hoat dong
-		{
-			sbi(PORTA,0); // bat nguon cho sen sor hoat dong
-			delay_1();
-			if(bit_is_clear(PINB,6)) // di qua ss 1 truoc ( di tu ngoai vao ) 
-			{
-				PORTD = 0b00010000; // bat buzzer
-				delay_1();
-				while(bit_is_clear(PINB,6))
-				{
-					if(bit_is_clear(PIND,5)) // kiem tra neu sang se tat ngay moi hoat dong
-					{
-						goto out;
-					}
-				}
-					PORTD = 0x00;	// tat buzzer
-				while(bit_is_set(PINB,7)) // kiem tra neu sang se tat ngay moi hoat dong
-				{
-					if(bit_is_clear(PIND,5))
-					{
-						goto out;
-					}
-				}
 
-				if(bit_is_clear(PINB,7)) // di qa ss 2
-				{
-						PORTD = 0b00010000; // bat buzzer
-						
-					while(bit_is_clear(PINB,7)) //kiem tra neu sang se tat ngay moi hoat dong
-					{
-						if(bit_is_clear(PIND,5))
-						{
-							goto out;
-						}
-					}
-					
-					i=i+1;
-					PORTD = 0x00; // tat buzzer
-					PORTA = 0b00000101; // bat den
-				}
-			}
+#define ENABLE_POT_SENSORS 0
+#define BUZZER 4
+#define PHOTORESISTANT_SIGNAL_PIN 5
+#define SENSOR1 6
+#define SENSOR2 7
 
-			if(bit_is_clear(PINB,7)) // di qa ss2 truoc ( di tu trong ra )
-			{
-						PORTD = 0b00010000; // bat buzzer
-						
-					delay_1();
-				while(bit_is_clear(PINB,7))// kiem tra neu sang se tat ngay moi hoat dong
-				{
-					if(bit_is_clear(PIND,5))
-					{
-						goto out;
-					}
-				}
-					PORTD = 0x00; // tat buzzer
-				while(bit_is_set(PINB,6))//kiem tra neu sang se tat ngay moi hoat dong
-				{
-					if(bit_is_clear(PIND,5))
-					{
-						goto out;
-					}
-				}
-				
-				if(bit_is_clear(PINB,6)) // di qa ss1
-				{
-						PORTD = 0b00010000; // bat buzzer
-					while(bit_is_clear(PINB,6)) //kiem tra neu sang se tat ngay moi hoat dong
-					{
-						if(bit_is_clear(PIND,5))
-						{
-							goto out;
-						}
-					}
-					PORTD = 0x00; // tat buzzer
-					i = i - 1;
-				}
-			}
-			
-				if(i == 0)
-				{
-					PORTA= 0b00000001; // tat den neu so nguoi di ra ngoai het tuc bien dem i se = 0
-				}
-		}
-		out:
-		// neu quang tro k hoat dong se tat moi hoat dong cua ss , ham goto se nhay ve dong line nay
-		PORTA =0x00; 
-		PORTD = 0x00;
-	
-	}
+#define sbi(PORT, bit) { PORT |= (1 << bit); }
+#define cbi(PORT, bit) { PORT &= ~(1 << bit); }
 
+int main() {
+  DDRA = 0xff;
+  DDRD = 0b00010010;
+  int counter = 0;
+  bool isOK = true;
+
+  while (1) {
+    // Loop to wait until sky is dark (Evening)
+    while (bit_is_set(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+      // Enable pot to adjust the sensitivity of sensor
+      sbi(PORTA, ENABLE_POT_SENSORS);
+      _delay_ms(1);
+
+      // If sensor1 detect person first (Person enter from out to in)
+      if (bit_is_clear(PINB, SENSOR1)) {
+        // Play sound
+        sbi(PORTD, BUZZER);
+        _delay_ms(1);
+
+        // While person standing at the sensor1
+        while (bit_is_clear(PINB, SENSOR1)) {
+          // Stop system when sky is bright (Morning)
+          if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+            isOK = false;
+            break;
+          }
+        }
+        // Stop sound
+        cbi(PORTD, BUZZER);
+        // Stop system when sky is bright (Morning)
+        if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+          isOK = false;
+          break;
+        }
+
+        // Loop until person enter deeply
+        while (bit_is_set(PINB, SENSOR2) && isOK) {
+          // Stop system when sky is bright (Morning)
+          if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+            isOK = false;
+            break;
+          }
+        }
+
+        // If person reach to sensor2
+        if (bit_is_clear(PINB, SENSOR2)) {
+          // Play sound
+          sbi(PORTD, BUZZER);
+          _delay_ms(1);
+
+          // While person standing at the sensor2
+          while (bit_is_clear(PINB, SENSOR2)) {
+            // Stop system when sky is bright (Morning)
+            if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+              isOK = false;
+              break;
+            }
+          }
+        }
+        // Stop sound
+        cbi(PORTD, BUZZER);
+
+        if (isOK) {
+          counter++;
+        } else {
+          // When sky is bright, turn off led and sensors
+          PORTA = 0x00;
+          PORTD = 0x00;
+          isOK = true;
+        }
+      }
+
+      // If sensor2 detect person first (Person exit from in to out)
+      if (bit_is_clear(PINB, SENSOR2)) {
+        // Play sound
+        sbi(PORTD, BUZZER);
+        _delay_ms(1);
+
+        // While person standing at the sensor2
+        while (bit_is_clear(PINB, SENSOR2)) {
+          // Stop system when sky is bright (Morning)
+          if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+            isOK = false;
+            break;
+          }
+        }
+        // Stop sound
+        cbi(PORTD, BUZZER);
+        // Stop system when sky is bright (Morning)
+        if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+          isOK = false;
+          break;
+        }
+
+        // Loop until person go out
+        while (bit_is_set(PINB, SENSOR1) && isOK) {
+          // Stop system when sky is bright (Morning)
+          if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+            isOK = false;
+            break;
+          }
+        }
+
+        // If person reach to sensor1
+        if (bit_is_clear(PINB, SENSOR1)) {
+          // Play sound
+          sbi(PORTD, BUZZER);
+          _delay_ms(1);
+
+          // While person standing at the sensor1
+          while (bit_is_clear(PINB, SENSOR1)) {
+            // Stop system when sky is bright (Morning)
+            if (bit_is_clear(PIND, PHOTORESISTANT_SIGNAL_PIN)) {
+              isOK = false;
+              break;
+            }
+          }
+        }
+        // Stop sound
+        cbi(PORTD, BUZZER);
+
+        if (isOK) {
+          counter--;
+        } else {
+          // When sky is bright, turn off led and sensors
+          PORTA = 0x00;
+          PORTD = 0x00;
+          isOK = true;
+        }
+      }
+
+      if (counter > 0) {
+        sbi(PORTA, 2);  // Turn light on
+      } else {
+        cbi(PORTA, 2)  // Turn light off when all people exited
+      }
+    }
+  }
 }
